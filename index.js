@@ -141,6 +141,20 @@ app.post('/api/config', (req, res) => {
   }
 });
 
+// GET /api/status
+app.get('/api/status', (req, res) => {
+  try {
+    let response = {
+      status: 'running',
+      timestamp: configData.lastUpdated
+    };
+    res.json(response);
+  } catch (error) {
+    console.error('Error while fetching app status: ', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Middleware per gestire richieste non trovate
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
