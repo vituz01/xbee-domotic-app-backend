@@ -74,6 +74,8 @@ app.get('/api/config', (req, res) => {
         return res.status(500).json({ error: 'Mode not valid' });
     }
 
+    response.status = 'success';
+
     res.json(response);
   } catch (error) {
     console.error('Error while fetching current config:', error);
@@ -126,6 +128,8 @@ app.post('/api/config', (req, res) => {
         response.chromecast_name = configData.chromecastName;
         break;
     }
+
+    response.status = 'success';
 
     res.json(response);
     
