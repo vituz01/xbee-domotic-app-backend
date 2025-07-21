@@ -4,8 +4,8 @@
   "description": "This project concerns the development of the backend for a domotic web application used to configure and interact with a local network composed by a coordinator micro-controller, 3 Xbee modules and a touch sensor.",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "author": "Vito Martiradonna",
   "license": "MIT",
