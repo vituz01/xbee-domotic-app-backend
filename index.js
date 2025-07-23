@@ -275,3 +275,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Config file polling every 100ms from: ${CONFIG_FILE_PATH}`);
 });
+
+module.exports = app; // Esporta l'app per test o altri usi
