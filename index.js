@@ -16,12 +16,21 @@ const CONFIG_FILE_PATH = path.join(__dirname, '../config/config.json');
 // Inizializza oggetto configData
 let configData = {};
 let lastFileModified = null;
+let configPollingInterval = null; // Modificato per gestire l'intervallo
 
 // Funzione per caricare la configurazione dal file
 function loadConfigFromFile() {
   try {
     if (!fs.existsSync(CONFIG_FILE_PATH)) {
       console.warn(`Config file not found at ${CONFIG_FILE_PATH}`);
+      
+      // Interrompi il polling se il file non esiste
+      if (configPollingInterval) {
+        console.log('Stopping config file polling - file not found');
+        clearInterval(configPollingInterval);
+        configPollingInterval = null;
+      }
+      
       return false;
     }
 
@@ -62,6 +71,14 @@ function loadConfigFromFile() {
     return false; // File non modificato
   } catch (error) {
     console.error('Error loading config file:', error);
+    
+    // Interrompi il polling anche in caso di errore di lettura
+    if (configPollingInterval) {
+      console.log('Stopping config file polling - error reading file');
+      clearInterval(configPollingInterval);
+      configPollingInterval = null;
+    }
+    
     return false;
   }
 }
@@ -85,6 +102,13 @@ function saveConfigToFile() {
 
     fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(configToSave, null, 2), 'utf8');
     console.log('Config saved to file');
+    
+    // Riavvia il polling se era stato fermato e ora il file esiste di nuovo
+    if (!configPollingInterval) {
+      console.log('Restarting config file polling');
+      startConfigPolling();
+    }
+    
     return true;
   } catch (error) {
     console.error('Error saving config file:', error);
@@ -92,13 +116,28 @@ function saveConfigToFile() {
   }
 }
 
-// Carica la configurazione iniziale
-loadConfigFromFile();
+// Funzione per avviare il polling della configurazione
+function startConfigPolling() {
+  if (configPollingInterval) {
+    clearInterval(configPollingInterval);
+  }
+  
+  configPollingInterval = setInterval(() => {
+    loadConfigFromFile();
+  }, 100);
+  
+  console.log('Config file polling started');
+}
 
-// Polling del file di configurazione ogni 100ms
-const configPollingInterval = setInterval(() => {
-  loadConfigFromFile();
-}, 100);
+// Carica la configurazione iniziale
+const initialLoadSuccess = loadConfigFromFile();
+
+// Avvia il polling solo se il file esiste inizialmente
+if (initialLoadSuccess || fs.existsSync(CONFIG_FILE_PATH)) {
+  startConfigPolling();
+} else {
+  console.log('Config file not found - polling not started');
+}
 
 // Funzione per aggiornare il timestamp
 function updateTimestamp() {
@@ -236,7 +275,8 @@ app.get('/api/status', (req, res) => {
       status: 'running',
       timestamp: configData.lastUpdated,
       config_file_path: CONFIG_FILE_PATH,
-      config_loaded: Object.keys(configData).length > 0
+      config_loaded: Object.keys(configData).length > 0,
+      polling_active: configPollingInterval !== null // Aggiunto stato del polling
     };
     res.json(response);
   } catch (error) {
@@ -259,13 +299,17 @@ app.use((error, req, res, next) => {
 // Cleanup quando l'applicazione viene chiusa
 process.on('SIGINT', () => {
   console.log('Shutting down server...');
-  clearInterval(configPollingInterval);
+  if (configPollingInterval) {
+    clearInterval(configPollingInterval);
+  }
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('Shutting down server...');
-  clearInterval(configPollingInterval);
+  if (configPollingInterval) {
+    clearInterval(configPollingInterval);
+  }
   process.exit(0);
 });
 
@@ -273,7 +317,12 @@ process.on('SIGTERM', () => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Config file polling every 100ms from: ${CONFIG_FILE_PATH}`);
+  console.log(`Config file path: ${CONFIG_FILE_PATH}`);
+  if (configPollingInterval) {
+    console.log('Config file polling active (every 100ms)');
+  } else {
+    console.log('Config file polling inactive - file not found');
+  }
 });
 
 module.exports = app; // Esporta l'app per test o altri usi
