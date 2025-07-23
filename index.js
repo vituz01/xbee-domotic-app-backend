@@ -126,8 +126,8 @@ function validateConfigData(data) {
   }
 
   if (modalità_corrente === 'chromecast') {
-    if (!data.chromecast_name || typeof data.chromecast_name !== 'string') {
-      return { valid: false, error: 'chromecast_name required for chromecast mode' };
+    if ((!data.chromecast_name || typeof data.chromecast_name !== 'string') || (!data.youtube_video_id || typeof data.youtube_video_id !== 'string')) {
+      return { valid: false, error: 'chromecast_name/youtube_video_id required for chromecast mode' };
     }
   }
 
@@ -175,7 +175,7 @@ app.post('/api/config', (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    const { modalità_corrente, web_url, chromecast_name } = req.body;
+    const { modalità_corrente, web_url, chromecast_name,  youtube_video_id} = req.body;
 
     // Aggiorna la configurazione
     configData.mode = modalità_corrente;
