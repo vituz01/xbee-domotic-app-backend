@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 
 // CORS middleware - consente richieste da tutte le origini
@@ -8,14 +10,95 @@ app.use(cors());
 // Middleware per parsing JSON
 app.use(express.json());
 
-// Simulazione dei dati di configurazione in memoria
-// Nell'applicazione reale, questi dati vengono gestiti dal file pollato dallo script Python
-let configData = {
-  mode: 'led', // Modalità corrente: 'led', 'web', 'chromecast'
-  webUrl: 'https://youtube.com',
-  chromecastName: 'Chromecast name',
-  lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 23)
-};
+// Percorso del file di configurazione
+const CONFIG_FILE_PATH = path.join(__dirname, '../config/config.json');
+
+// Inizializza oggetto configData
+let configData = {};
+let lastFileModified = null;
+
+// Funzione per caricare la configurazione dal file
+function loadConfigFromFile() {
+  try {
+    if (!fs.existsSync(CONFIG_FILE_PATH)) {
+      console.warn(`Config file not found at ${CONFIG_FILE_PATH}`);
+      return false;
+    }
+
+    const stats = fs.statSync(CONFIG_FILE_PATH);
+    const currentModified = stats.mtime.getTime();
+
+    // Controlla se il file è stato modificato
+    if (lastFileModified === null || currentModified !== lastFileModified) {
+      console.log('Config file changed, reloading...');
+      
+      const configFile = fs.readFileSync(CONFIG_FILE_PATH, "utf8");
+      const parsedConfig = JSON.parse(configFile);
+      
+      // Aggiorna configData
+      configData = {};
+      
+      // Mappa campi del file nell'oggetto configData
+      for (const key in parsedConfig) {
+        configData[key] = parsedConfig[key];
+      }
+
+      configData.mode = parsedConfig.mode || '';
+      configData.webUrl = parsedConfig.webUrl || '';
+      configData.chromecastName = parsedConfig.chromecastName || '';
+      configData.youtubeVideoId = parsedConfig.youtubeVideoId || '';
+
+      if (parsedConfig.lastUpdated) {
+        configData.lastUpdated = new Date(parsedConfig.lastUpdated).toISOString().replace('T', ' ').substring(0, 23);
+      } else {
+        configData.lastUpdated = new Date().toISOString().replace('T', ' ').substring(0, 23);
+      }
+
+      lastFileModified = currentModified;
+      console.log('Config reloaded successfully');
+      return true;
+    }
+    
+    return false; // File non modificato
+  } catch (error) {
+    console.error('Error loading config file:', error);
+    return false;
+  }
+}
+
+// Funzione per salvare la configurazione nel file
+function saveConfigToFile() {
+  try {
+    const configToSave = {
+      mode: configData.mode,
+      webUrl: configData.webUrl,
+      chromecastName: configData.chromecastName,
+      youtubeVideoId: configData.youtubeVideoId,
+      lastUpdated: configData.lastUpdated
+    };
+
+    // Assicurati che la directory esista
+    const configDir = path.dirname(CONFIG_FILE_PATH);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(configToSave, null, 2), 'utf8');
+    console.log('Config saved to file');
+    return true;
+  } catch (error) {
+    console.error('Error saving config file:', error);
+    return false;
+  }
+}
+
+// Carica la configurazione iniziale
+loadConfigFromFile();
+
+// Polling del file di configurazione ogni 100ms
+const configPollingInterval = setInterval(() => {
+  loadConfigFromFile();
+}, 100);
 
 // Funzione per aggiornare il timestamp
 function updateTimestamp() {
@@ -44,7 +127,7 @@ function validateConfigData(data) {
 
   if (modalità_corrente === 'chromecast') {
     if (!data.chromecast_name || typeof data.chromecast_name !== 'string') {
-      return { valid: false, error: 'chromecast_name  required for chromecast mode' };
+      return { valid: false, error: 'chromecast_name required for chromecast mode' };
     }
   }
 
@@ -104,6 +187,7 @@ app.post('/api/config', (req, res) => {
         break;
       case 'chromecast':
         configData.chromecastName = chromecast_name;
+        configData.youtubeVideoId = youtube_video_id;
         break;
       case 'led':
         // Per la modalità LED non sono necessari campi aggiuntivi
@@ -112,6 +196,9 @@ app.post('/api/config', (req, res) => {
 
     // Aggiorna il timestamp
     updateTimestamp();
+
+    // Salva la configurazione nel file
+    saveConfigToFile();
 
     // Restituisci la configurazione aggiornata
     let response = {
@@ -126,6 +213,7 @@ app.post('/api/config', (req, res) => {
         break;
       case 'chromecast':
         response.chromecast_name = configData.chromecastName;
+        response.youtube_video_id = configData.youtubeVideoId;
         break;
     }
 
@@ -146,7 +234,9 @@ app.get('/api/status', (req, res) => {
   try {
     let response = {
       status: 'running',
-      timestamp: configData.lastUpdated
+      timestamp: configData.lastUpdated,
+      config_file_path: CONFIG_FILE_PATH,
+      config_loaded: Object.keys(configData).length > 0
     };
     res.json(response);
   } catch (error) {
@@ -166,10 +256,22 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Cleanup quando l'applicazione viene chiusa
+process.on('SIGINT', () => {
+  console.log('Shutting down server...');
+  clearInterval(configPollingInterval);
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Shutting down server...');
+  clearInterval(configPollingInterval);
+  process.exit(0);
+});
+
 // Avvio del server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Config file polling every 100ms from: ${CONFIG_FILE_PATH}`);
 });
-
-module.exports = app;
