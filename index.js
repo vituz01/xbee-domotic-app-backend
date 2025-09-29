@@ -313,24 +313,6 @@ process.on('SIGTERM', () => {
 });
 
 // Avvio del server
-// API per invio email PowerPoint
-app.post('/api/send_ppt_email', (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email || typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).json({ status: 'error', message: 'Email non valida o mancante' });
-    }
-
-    // Simulazione invio email (qui si integrerebbe il vero invio)
-    console.log(`Simulazione invio email PowerPoint a: ${email}`);
-
-    // Risposta di successo
-    return res.json({ status: 'success', message: 'Email inviata con successo!' });
-  } catch (error) {
-    console.error('Errore invio email PowerPoint:', error);
-    return res.status(500).json({ status: 'error', message: 'Errore interno server' });
-  }
-});
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST ||'0.0.0.0';
 app.listen(PORT, HOST, () => {
