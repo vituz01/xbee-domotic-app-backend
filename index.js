@@ -52,10 +52,10 @@ function loadConfigFromFile() {
         configData[key] = parsedConfig[key];
       }
 
-      configData.mode = parsedConfig.mode || '';
-      configData.webUrl = parsedConfig.webUrl || '';
-      configData.chromecastName = parsedConfig.chromecastName || '';
-      configData.youtubeVideoId = parsedConfig.youtubeVideoId || '';
+  configData.mode = parsedConfig.mode || '';
+  configData.chromecastName = parsedConfig.chromecastName || '';
+  configData.youtubeVideoId = parsedConfig.youtubeVideoId || '';
+  configData.ppt_email = parsedConfig.ppt_email || '';
 
       if (parsedConfig.lastUpdated) {
         configData.lastUpdated = new Date(parsedConfig.lastUpdated).toISOString().replace('T', ' ').substring(0, 23);
@@ -88,9 +88,9 @@ function saveConfigToFile() {
   try {
     const configToSave = {
       mode: configData.mode,
-      webUrl: configData.webUrl,
       chromecastName: configData.chromecastName,
       youtubeVideoId: configData.youtubeVideoId,
+      ppt_email: configData.ppt_email,
       lastUpdated: configData.lastUpdated
     };
 
@@ -148,25 +148,23 @@ function updateTimestamp() {
 function validateConfigData(data) {
   const { modalità_corrente } = data;
 
-  if (!modalità_corrente || !['led', 'web', 'chromecast'].includes(modalità_corrente)) {
-    return { valid: false, error: 'modalità_corrente must be: led, web or chromecast' };
-  }
-
-  if (modalità_corrente === 'web') {
-    if (!data.web_url || typeof data.web_url !== 'string') {
-      return { valid: false, error: 'web_url required for web mode' };
-    }
-    // Validazione URL base
-    try {
-      new URL(data.web_url);
-    } catch {
-      return { valid: false, error: 'web_url must be a valid url' };
-    }
+  if (!modalità_corrente || !['led', 'chromecast', 'powerpoint'].includes(modalità_corrente)) {
+    return { valid: false, error: 'modalità_corrente must be: led, chromecast or powerpoint' };
   }
 
   if (modalità_corrente === 'chromecast') {
     if ((!data.chromecast_name || typeof data.chromecast_name !== 'string') || (!data.youtube_video_id || typeof data.youtube_video_id !== 'string')) {
       return { valid: false, error: 'chromecast_name/youtube_video_id required for chromecast mode' };
+    }
+  }
+
+  if (modalità_corrente === 'powerpoint') {
+    if (!data.ppt_email || typeof data.ppt_email !== 'string') {
+      return { valid: false, error: 'ppt_email required for powerpoint mode' };
+    }
+    // Simple email validation
+    if (!/^\S+@\S+\.\S+$/.test(data.ppt_email)) {
+      return { valid: false, error: 'ppt_email must be a valid email address' };
     }
   }
 
@@ -183,11 +181,12 @@ app.get('/api/config', (req, res) => {
 
     // Aggiungi campi specifici in base alla modalità corrente
     switch (configData.mode) {
-      case 'web':
-        response.web_url = configData.webUrl;
-        break;
       case 'chromecast':
         response.chromecast_name = configData.chromecastName;
+        response.youtube_video_id = configData.youtubeVideoId;
+        break;
+      case 'powerpoint':
+        response.ppt_email = configData.ppt_email;
         break;
       case 'led':
         // Per la modalità LED non sono necessari campi aggiuntivi
@@ -214,19 +213,19 @@ app.post('/api/config', (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    const { modalità_corrente, web_url, chromecast_name,  youtube_video_id} = req.body;
+    const { modalità_corrente, chromecast_name, youtube_video_id, ppt_email } = req.body;
 
     // Aggiorna la configurazione
     configData.mode = modalità_corrente;
 
     // Aggiorna i campi specifici per ogni modalità
     switch (modalità_corrente) {
-      case 'web':
-        configData.webUrl = web_url;
-        break;
       case 'chromecast':
         configData.chromecastName = chromecast_name;
         configData.youtubeVideoId = youtube_video_id;
+        break;
+      case 'powerpoint':
+        configData.ppt_email = ppt_email;
         break;
       case 'led':
         // Per la modalità LED non sono necessari campi aggiuntivi
@@ -247,12 +246,12 @@ app.post('/api/config', (req, res) => {
 
     // Aggiungi campi specifici nella risposta
     switch (configData.mode) {
-      case 'web':
-        response.web_url = configData.webUrl;
-        break;
       case 'chromecast':
         response.chromecast_name = configData.chromecastName;
         response.youtube_video_id = configData.youtubeVideoId;
+        break;
+      case 'powerpoint':
+        response.ppt_email = configData.ppt_email;
         break;
     }
 
