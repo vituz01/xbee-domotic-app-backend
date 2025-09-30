@@ -150,8 +150,8 @@ function updateTimestamp() {
 function validateConfigData(data) {
   const { modalità_corrente } = data;
 
-  if (!modalità_corrente || !['led', 'chromecast', 'powerpoint'].includes(modalità_corrente)) {
-    return { valid: false, error: 'modalità_corrente must be: led, chromecast or powerpoint' };
+  if (!modalità_corrente || !['led', 'chromecast', 'ppt'].includes(modalità_corrente)) {
+    return { valid: false, error: 'modalità_corrente must be: led, chromecast or ppt' };
   }
 
   if (modalità_corrente === 'chromecast') {
@@ -160,9 +160,9 @@ function validateConfigData(data) {
     }
   }
 
-  if (modalità_corrente === 'powerpoint') {
+  if (modalità_corrente === 'ppt') {
     if (!data.ppt_email || typeof data.ppt_email !== 'string') {
-      return { valid: false, error: 'ppt_email required for powerpoint mode' };
+      return { valid: false, error: 'ppt_email required for ppt mode' };
     }
     // Simple email validation
     if (!/^\S+@\S+\.\S+$/.test(data.ppt_email)) {
@@ -187,7 +187,7 @@ app.get('/api/config', (req, res) => {
         response.chromecast_name = configData.chromecastName;
         response.youtube_video_id = configData.youtubeVideoId;
         break;
-      case 'powerpoint':
+      case 'ppt':
         response.ppt_email = configData.ppt_email;
         response.ppt_link = configData.ppt_link;
         break;
@@ -227,7 +227,7 @@ app.post('/api/config', (req, res) => {
         configData.chromecastName = chromecast_name;
         configData.youtubeVideoId = youtube_video_id;
         break;
-      case 'powerpoint':
+      case 'ppt':
         configData.ppt_email = ppt_email;
         configData.ppt_link = ppt_link;
         break;
@@ -254,7 +254,7 @@ app.post('/api/config', (req, res) => {
         response.chromecast_name = configData.chromecastName;
         response.youtube_video_id = configData.youtubeVideoId;
         break;
-      case 'powerpoint':
+      case 'ppt':
         response.ppt_email = configData.ppt_email;
         response.ppt_link = configData.ppt_link;
         break;
