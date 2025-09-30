@@ -56,6 +56,7 @@ function loadConfigFromFile() {
   configData.chromecastName = parsedConfig.chromecastName || '';
   configData.youtubeVideoId = parsedConfig.youtubeVideoId || '';
   configData.ppt_email = parsedConfig.ppt_email || '';
+  configData.ppt_link = parsedConfig.ppt_link || '';
 
       if (parsedConfig.lastUpdated) {
         configData.lastUpdated = new Date(parsedConfig.lastUpdated).toISOString().replace('T', ' ').substring(0, 23);
@@ -91,6 +92,7 @@ function saveConfigToFile() {
       chromecastName: configData.chromecastName,
       youtubeVideoId: configData.youtubeVideoId,
       ppt_email: configData.ppt_email,
+      ppt_link: configData.ppt_link,
       lastUpdated: configData.lastUpdated
     };
 
@@ -187,6 +189,7 @@ app.get('/api/config', (req, res) => {
         break;
       case 'powerpoint':
         response.ppt_email = configData.ppt_email;
+        response.ppt_link = configData.ppt_link;
         break;
       case 'led':
         // Per la modalità LED non sono necessari campi aggiuntivi
@@ -213,7 +216,7 @@ app.post('/api/config', (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    const { modalità_corrente, chromecast_name, youtube_video_id, ppt_email } = req.body;
+    const { modalità_corrente, chromecast_name, youtube_video_id, ppt_email, ppt_link } = req.body;
 
     // Aggiorna la configurazione
     configData.mode = modalità_corrente;
@@ -226,6 +229,7 @@ app.post('/api/config', (req, res) => {
         break;
       case 'powerpoint':
         configData.ppt_email = ppt_email;
+        configData.ppt_link = ppt_link;
         break;
       case 'led':
         // Per la modalità LED non sono necessari campi aggiuntivi
@@ -252,6 +256,7 @@ app.post('/api/config', (req, res) => {
         break;
       case 'powerpoint':
         response.ppt_email = configData.ppt_email;
+        response.ppt_link = configData.ppt_link;
         break;
     }
 
