@@ -5,7 +5,7 @@ This project concerns the development of the backend for a domotic web applicati
 The API manages three different operational modes:
 
 - LED mode: Basic LED display functionality
-- Web mode: Displays web content (requires a URL)
+- Powerpoint mode: Sends an email to a target email containing a link to a Powerpoint presentation saved in Google Drive
 - Chromecast mode: Connects to a Chromecast device (requires device name)
 
 ## API Endpoints
@@ -17,7 +17,7 @@ The API manages three different operational modes:
 
 - POST /api/config - Updates the configuration with validation:
 
-1. Ensures the mode is valid (led/web/chromecast)
+1. Ensures the mode is valid (led/ppt/chromecast)
 2. Validates required parameters for each mode
 3. Updates timestamps automatically
 
